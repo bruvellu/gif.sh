@@ -12,6 +12,7 @@ usage() {
   echo "\t-s start time\t<mm:ss>, defaults to 00:00";
   echo "\t-d duration\t<seconds>, defaults to input duration";
   echo "\t-f fps\t\t<frames-per-second>, defaults to input fps";
+  echo "\t-x scale\t<width-in-pixels>, defaults to input width";
   exit 1;
 }
 
@@ -30,13 +31,14 @@ START=00:00
 #SCALE="440:-1:flags=lanczos"
 
 # Parse arguments
-while getopts "i:o:s:d:f:" option; do
+while getopts "i:o:s:d:f:x:" option; do
   case "${option}" in
     i) INPUT="${OPTARG}" ;;
     o) OUTPUT="${OPTARG}" ;;
     s) START="${OPTARG}" ;;
     d) DURATION="${OPTARG}" ;;
     f) FPS="${OPTARG}" ;;
+    x) SCALE="${OPTARG}" ;;
     ?) usage ;;
   esac
 done
@@ -56,6 +58,11 @@ if [ -z "${FPS}" ]; then
   FPS=`ffmpeg -i ${INPUT} 2>&1 | grep -oE '[[:digit:]]{1,4} fps' | cut -d ' ' -f 1`
 fi
 
+# Fetch width from video if not provided
+if [ -z "${SCALE}" ]; then
+  SCALE=`ffmpeg -i ${INPUT} 2>&1 | grep -oE ', [[:digit:]]{1,4}x[[:digit:]]{1,4}' | cut -d ' ' -f 2 | cut -d 'x' -f 1`
+fi
+
 # Print parameters
 echo "\nParameters:"
 echo "input = ${INPUT}"
@@ -63,10 +70,11 @@ echo "output = ${OUTPUT}"
 echo "start = ${START}"
 echo "duration = ${DURATION}s"
 echo "fps = ${FPS}"
+echo "width = ${SCALE}px"
 
 # Apply filters
 #filters="fps=15,setpts=0.4*PTS,crop=440:440:135:15,scale=440:-1:flags=lanczos"
-FILTERS="fps=${FPS}"
+FILTERS="fps=${FPS},scale=${SCALE}:-1:flags=lanczos"
 
 # Run two pass conversion
 echo "\nProcessing..."
